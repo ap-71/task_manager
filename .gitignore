@@ -1,0 +1,7 @@
+__pycache__
+data.db
+data.json
+.venv
+.vscode
+*.xlsx
+main.py
