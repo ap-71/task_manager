@@ -1,5 +1,5 @@
 from typing import List, Annotated
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from crud import BoardCRUD
 from init import app
 from schemas import (
@@ -15,7 +15,7 @@ from schemas import (
 
 
 @app.post("/boards/", response_model=BoardSchema)
-def create_board_api(board: BoardCreateSchema, crud: Annotated[BoardCRUD, Depends(BoardCRUD)]):
+def create_board(board: BoardCreateSchema, crud: Annotated[BoardCRUD, Depends(BoardCRUD)]):
     return crud.create(board)
 
 
@@ -25,26 +25,21 @@ def read_boards(
     skip: int = 0,
     limit: int = 100,
 ):
-    boards = crud.get_all(skip=skip, limit=limit)
-    return boards
+    return crud.get_all(skip=skip, limit=limit)
 
 
 @app.get("/boards/{board_id}", response_model=BoardSchema)
 def read_board(board_id: int, crud: Annotated[BoardCRUD, Depends(BoardCRUD)]):
-    board = crud.get(board_id)
-    if board is None:
-        raise HTTPException(status_code=404, detail="Board not found")
-    return board
+    return crud.get(board_id)
 
 
 @app.post("/statuses/", response_model=StatusSchema)
-def create_status_api(
+def create_status(
     status: StatusCreateSchema,
     board_id: int,
     crud: Annotated[BoardCRUD, Depends(BoardCRUD)],
 ):
     return crud.add_status(board_id=board_id, status=status)
-
 
 @app.get("/statuses/", response_model=List[StatusSchema])
 def read_statuses(
@@ -53,12 +48,11 @@ def read_statuses(
     skip: int = 0,
     limit: int = 100,
 ):
-    statuses = crud.status.get_all(board_id=board_id, skip=skip, limit=limit)
-    return statuses
+    return crud.status.get_all(board_id=board_id, skip=skip, limit=limit)
 
 
 @app.post("/tasks/", response_model=TaskSchema)
-def create_task_api(
+def create_task(
     task: TaskCreateSchema,
     board_id: int,
     crud: Annotated[BoardCRUD, Depends(BoardCRUD)],
@@ -73,12 +67,11 @@ def read_tasks(
     skip: int = 0,
     limit: int = 100,
 ):
-    tasks = crud.task.get_all(board_id=board_id, skip=skip, limit=limit)
-    return tasks
+    return crud.task.get_all(board_id=board_id, skip=skip, limit=limit)
 
 
 @app.post("/comments/", response_model=CommentSchema)
-def create_comment_api(
+def create_comment(
     board_id: int, task_id: int, comment: CommentCreateSchema, crud: Annotated[BoardCRUD, Depends(BoardCRUD)]
 ):
     return crud.task.add_comment(board_id=board_id, task_id=task_id, comment=comment)
