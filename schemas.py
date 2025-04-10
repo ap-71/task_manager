@@ -113,7 +113,7 @@ class CommentBaseSchema(BaseModel):
 
 
 class CommentCreateSchema(CommentBaseSchema):
-    task_id: int
+    pass
 
 
 class CommentSchema(CommentBaseSchema):

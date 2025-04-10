@@ -1,6 +1,6 @@
 from typing import List, Annotated
 from fastapi import Depends, HTTPException
-from crud import BoardCRUD, TaskCRUD, StatusCRUD, CommentCRUD
+from crud import BoardCRUD
 from init import app
 from schemas import (
     BoardSchema,
@@ -16,7 +16,7 @@ from schemas import (
 
 @app.post("/boards/", response_model=BoardSchema)
 def create_board_api(board: BoardCreateSchema, crud: Annotated[BoardCRUD, Depends(BoardCRUD)]):
-    return crud.create_board(board)
+    return crud.create(board)
 
 
 @app.get("/boards/", response_model=List[BoardSchema])
@@ -25,13 +25,13 @@ def read_boards(
     skip: int = 0,
     limit: int = 100,
 ):
-    boards = crud.get_boards(skip=skip, limit=limit)
+    boards = crud.get_all(skip=skip, limit=limit)
     return boards
 
 
 @app.get("/boards/{board_id}", response_model=BoardSchema)
 def read_board(board_id: int, crud: Annotated[BoardCRUD, Depends(BoardCRUD)]):
-    board = crud.get_board(board_id)
+    board = crud.get(board_id)
     if board is None:
         raise HTTPException(status_code=404, detail="Board not found")
     return board
@@ -41,19 +41,19 @@ def read_board(board_id: int, crud: Annotated[BoardCRUD, Depends(BoardCRUD)]):
 def create_status_api(
     status: StatusCreateSchema,
     board_id: int,
-    crud: Annotated[StatusCRUD, Depends(StatusCRUD)],
+    crud: Annotated[BoardCRUD, Depends(BoardCRUD)],
 ):
-    return crud.create_status(status=status, board_id=board_id)
+    return crud.add_status(board_id=board_id, status=status)
 
 
 @app.get("/statuses/", response_model=List[StatusSchema])
 def read_statuses(
-    crud: Annotated[StatusCRUD, Depends(StatusCRUD)],
+    crud: Annotated[BoardCRUD, Depends(BoardCRUD)],
     board_id: int,
     skip: int = 0,
     limit: int = 100,
 ):
-    statuses = crud.get_statuses(board_id=board_id, skip=skip, limit=limit)
+    statuses = crud.status.get_all(board_id=board_id, skip=skip, limit=limit)
     return statuses
 
 
@@ -61,34 +61,35 @@ def read_statuses(
 def create_task_api(
     task: TaskCreateSchema,
     board_id: int,
-    crud: Annotated[TaskCRUD, Depends(TaskCRUD)],
+    crud: Annotated[BoardCRUD, Depends(BoardCRUD)],
 ):
-    return crud.create_task(board_id, task)
+    return crud.add_task(board_id, task)
 
 
 @app.get("/tasks/", response_model=List[TaskSchema])
 def read_tasks(
-    crud: Annotated[TaskCRUD, Depends(TaskCRUD)],
+    crud: Annotated[BoardCRUD, Depends(BoardCRUD)],
     board_id: int,
     skip: int = 0,
     limit: int = 100,
 ):
-    tasks = crud.get_tasks(board_id=board_id, skip=skip, limit=limit)
+    tasks = crud.task.get_all(board_id=board_id, skip=skip, limit=limit)
     return tasks
 
 
 @app.post("/comments/", response_model=CommentSchema)
-def create_comment_api(comment: CommentCreateSchema, crud: Annotated[CommentCRUD, Depends(CommentCRUD)]):
-    return crud.create_comment(comment)
+def create_comment_api(
+    board_id: int, task_id: int, comment: CommentCreateSchema, crud: Annotated[BoardCRUD, Depends(BoardCRUD)]
+):
+    return crud.task.add_comment(board_id=board_id, task_id=task_id, comment=comment)
 
 
 @app.get("/comments/", response_model=List[CommentSchema])
 def read_comments(
-    crud: Annotated[CommentCRUD, Depends(CommentCRUD)],
+    crud: Annotated[BoardCRUD, Depends(BoardCRUD)],
     board_id: int,
     task_id: int,
     skip: int = 0,
     limit: int = 100,
 ):
-    comments = crud.get_comments(board_id=board_id, task_id=task_id, skip=skip, limit=limit)
-    return comments
+    return crud.task.comment.get_all(board_id=board_id, task_id=task_id, skip=skip, limit=limit)
