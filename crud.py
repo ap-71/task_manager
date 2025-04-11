@@ -6,11 +6,15 @@ from auth.helpers import get_current_user
 from db import get_db
 from models import BoardAccessModel, StatusModel, TagModel, TaskModel, UserModel, BoardModel, CommentModel
 from schemas import (
+    BoardAccessCreateSchema,
     BoardCreateSchema,
+    BoardUpdateSchema,
     CommentCreateSchema,
     StatusCreateSchema,
+    StatusUpdateSchema,
     TagCreateSchema,
     TaskCreateSchema,
+    TaskUpdateSchema,
 )
 
 
@@ -63,6 +67,20 @@ class StatusCRUD(CRUD):
         self.db.refresh(db_status)
         return db_status
 
+    def delete(self, board_id: int, status_id: int):
+        # CHECK IF USER HAS ACCESS TO THE BOARD
+        status = self.get(board_id, status_id)
+        self.db.delete(status)
+
+    
+    def update(self, board_id: int, status_id: int, data: StatusUpdateSchema):
+        # CHECK IF USER HAS ACCESS TO THE BOARD
+        status = self.get(board_id, status_id)
+        
+        for field, value in data.model_dump(exclude_unset=True).items():
+            setattr(status, field, value)
+        
+        return status
 
 class CommentCRUD(CRUD):
     def get(self, board_id: int, task_id, comment_id: int):
@@ -93,6 +111,7 @@ class CommentCRUD(CRUD):
         self.db.add(db_comment)
         self.db.commit()
         self.db.refresh(db_comment)
+        
         return db_comment
 
 
@@ -141,7 +160,21 @@ class TaskCRUD(CRUD):
         tag_model = self.tag.create(board_id=board_id, tag=tag)
         task.tags.append(tag_model)
         self.db.commit()
+        
+    def delete(self, board_id: int, task_id: int):
+        # CHECK IF USER HAS ACCESS TO THE BOARD
+        task = self.get(board_id=board_id, task_id=task_id)
+        self.db.delete(task)
+    
+    def update(self, board_id: int, task_id: int, data: TaskUpdateSchema):
+        # CHECK IF USER HAS ACCESS TO THE BOARD
+        task = self.get(board_id=board_id, task_id=task_id)
+        
+        for field, value in data.model_dump(exclude_unset=True).items():
+            if value is not None:
+                setattr(task, field, value)
 
+        return task
 
 class BoardAccessCRUD(CRUD):
     def get(self, board_id: int, access_id: int):
@@ -165,11 +198,22 @@ class BoardAccessCRUD(CRUD):
         )
 
     def create(self, board_id: int, user_id: int):
+        record = self.db.query(BoardAccessModel).filter(BoardAccessModel.board_id == board_id, BoardAccessModel.user_id == user_id).first()
+        
+        if record is not None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Access already exists")
+        
         db_board_access = BoardAccessModel(user_id=user_id, board_id=board_id)
+        
         self.db.add(db_board_access)
         self.db.commit()
         self.db.refresh(db_board_access)
+        
         return db_board_access
+    
+    def delete(self, board_id: int, access_id: int):
+        # CHECK IF USER HAS ACCESS TO THE BOARD
+        self.db.query(BoardAccessModel).filter(BoardAccessModel.board_id == board_id, BoardAccessModel.access_id == access_id).delete()
 
 
 class BoardCRUD(CRUD):
@@ -221,7 +265,24 @@ class BoardCRUD(CRUD):
 
         self.status.create(board_id=board.board_id, status=status)
 
-    def shared(self, board_id: int, user_id: int):
+    def shared(self, board_id: int, board_access: BoardAccessCreateSchema):
         board = self.get(board_id=board_id)
 
-        self.access.create(board_id=board.board_id, user_id=user_id)
+        self.access.create(board_id=board.board_id, user_id=board_access.user_id)
+
+    def delete(self, board_id: int):
+        # CHECK IF USER HAS ACCESS TO THE BOARD
+        res = self.db.query(BoardModel).filter(BoardModel.board_id == board_id, BoardModel.user_id == self.current_user.user_id).delete()
+        
+        if res == 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Невозможно удалить доску")
+    
+    def update(self, board_id: int, data: BoardUpdateSchema):
+        # CHECK IF USER HAS ACCESS TO THE BOARD
+        board = self.get(board_id=board_id)
+        
+        for field, value in data.model_dump(exclude_unset=True).items():
+            if value is not None:
+                setattr(board, field, value)
+        
+        return board

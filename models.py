@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import ForeignKey, String, Text, DateTime, Boolean, func
+from sqlalchemy import ForeignKey, String, Text, DateTime, Boolean, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -91,6 +91,10 @@ class BoardAccessModel(Base):
     # Relationships
     board: Mapped["BoardModel"] = relationship(back_populates="shared_with")
     user: Mapped["UserModel"] = relationship(back_populates="shared_boards")
+    
+    __table_args__ = (
+        UniqueConstraint('board_id', 'user_id', name='unique_board_user'),
+    )
 
 
 class CommentModel(Base):

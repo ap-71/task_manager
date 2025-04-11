@@ -29,13 +29,18 @@ class UserWithPasswordSchema(UserSchema):
 
 # Схема для доски
 class BoardBaseSchema(BaseModel):
-    title: str
     user_id: int
+    title: str
     description: Optional[str] = None
 
 
 class BoardCreateSchema(BoardBaseSchema):
     pass
+
+
+class BoardUpdateSchema(BoardBaseSchema):
+    title: Optional[str] = None
+    description: Optional[str] = None
 
 
 class BoardSchema(BoardBaseSchema):
@@ -58,6 +63,10 @@ class StatusCreateSchema(StatusBaseSchema):
     pass
 
 
+class StatusUpdateSchema(StatusBaseSchema):
+    name: Optional[str] = None
+
+
 class StatusSchema(StatusBaseSchema):
     status_id: int
     created_at: datetime
@@ -76,6 +85,12 @@ class TaskCreateSchema(TaskBaseSchema):
     status_id: int
 
 
+class TaskUpdateSchema(TaskBaseSchema):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status_id: Optional[int] = None
+
+
 class TaskSchema(TaskBaseSchema):
     task_id: int
     created_at: datetime
@@ -90,7 +105,7 @@ class TaskSchema(TaskBaseSchema):
 
 # Схема для доступа к доске
 class BoardAccessBaseSchema(BaseModel):
-    full_access: Optional[bool] = True
+    user_id: int
 
 
 class BoardAccessCreateSchema(BoardAccessBaseSchema):
